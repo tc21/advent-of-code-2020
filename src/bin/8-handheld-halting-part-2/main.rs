@@ -39,33 +39,34 @@ Fix the program so that it terminates normally by changing exactly one jmp (to n
 const INPUT: &str = include_str!("input");
 
 fn main() {
-    let code = INPUT.lines()
+    let mut code = INPUT.lines()
         .map(Instruction::parse)
         .collect::<Vec<_>>();
 
     let start = std::time::Instant::now();
 
-    for (i, instruction) in code.iter().enumerate() {
-        let replacement_instruction = match instruction.opcode {
-            Opcode::Nop => Instruction { opcode: Opcode::Jmp, ..*instruction },
-            Opcode::Jmp => Instruction { opcode: Opcode::Nop, ..*instruction },
+    for i in 0..code.len() {
+        let mut replacement_instruction = match code[i].opcode {
+            Opcode::Nop => Instruction { opcode: Opcode::Jmp, ..code[i] },
+            Opcode::Jmp => Instruction { opcode: Opcode::Nop, ..code[i] },
             Opcode::Acc => continue
         };
 
-        let mut copy = code.clone();
-        copy[i] = replacement_instruction;
+        std::mem::swap(&mut code[i], &mut replacement_instruction);
 
-        if let Ok(result) = try_run_to_end(copy) {
+        if let Ok(result) = try_run_to_end(&code) {
             println!("fixed instruction at line {}, acc = {}", i, result);
             break;
         }
+
+        std::mem::swap(&mut code[i], &mut replacement_instruction);
     }
 
     let diff = start.elapsed();
     println!("time elapsed: {:?}", diff);
 }
 
-fn try_run_to_end(instructions: Vec<Instruction>) -> Result<i32, ()> {
+fn try_run_to_end(instructions: &Vec<Instruction>) -> Result<i32, ()> {
     let mut instructions = instructions.into_iter().map(|i| (i, false)).collect::<Vec<_>>();
 
     let mut pc = 0;
